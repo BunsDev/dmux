@@ -1,16 +1,25 @@
 import stringWidth from 'string-width';
 
-// Get the display width of a single character (CJK = 2, ASCII = 1, etc.)
-const charDisplayWidth = (char: string): number => stringWidth(char);
+const graphemeSegmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl
+  ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+  : null;
 
-// Find the character index where cumulative display width would exceed targetWidth.
-// Returns the number of characters that fit within targetWidth columns.
+const getGraphemes = (str: string): string[] => (
+  graphemeSegmenter
+    ? Array.from(graphemeSegmenter.segment(str), ({ segment }) => segment)
+    : Array.from(str)
+);
+
+// Find the UTF-16 string index where cumulative display width would exceed targetWidth.
+// Returns the string index for the last whole grapheme that fits within targetWidth columns.
 export const findCharIndexAtWidth = (str: string, targetWidth: number): number => {
   let width = 0;
-  for (let i = 0; i < str.length; i++) {
-    const cw = charDisplayWidth(str[i]!);
-    if (width + cw > targetWidth) return i;
+  let stringIndex = 0;
+  for (const grapheme of getGraphemes(str)) {
+    const cw = stringWidth(grapheme);
+    if (width + cw > targetWidth) return stringIndex;
     width += cw;
+    stringIndex += grapheme.length;
   }
   return str.length;
 };

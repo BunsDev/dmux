@@ -127,6 +127,29 @@ describe('input utils: CJK wrapping', () => {
     // Forced break (no space) should have gapSize 0
     expect(wrapped[0].gapSize).toBe(0);
   });
+
+  it('wraps astral Unicode symbols without overflowing the target width', () => {
+    const text = '\u{1F642}\u{1F642}';
+    const wrapped = wrapText(text, 2);
+    expect(findCharIndexAtWidth(text, 2)).toBe(2);
+    expect(wrapped.length).toBe(2);
+    expect(wrapped[0].line).toBe('\u{1F642}');
+    expect(wrapped[1].line).toBe('\u{1F642}');
+    for (const wl of wrapped) {
+      expect(stringWidth(wl.line)).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('wraps mixed ASCII and astral Unicode symbols by display width', () => {
+    const text = `a${'\u{1F642}'}b`;
+    const wrapped = wrapText(text, 3);
+    expect(wrapped.length).toBe(2);
+    expect(wrapped[0].line).toBe(`a${'\u{1F642}'}`);
+    expect(wrapped[1].line).toBe('b');
+    for (const wl of wrapped) {
+      expect(stringWidth(wl.line)).toBeLessThanOrEqual(3);
+    }
+  });
 });
 
 describe('input utils: CJK cursor mapping', () => {
