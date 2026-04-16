@@ -61,6 +61,7 @@ export interface ActionResult {
   placeholder?: string;
   defaultValue?: string;
   onSubmit?: (value: string) => Promise<ActionResult>;
+  inputMaxVisibleLines?: number;  // If set, input scrolls within this many lines and popup is enlarged
 
   // For 'progress' type
   progress?: number;      // 0-100, or undefined for indeterminate

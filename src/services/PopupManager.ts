@@ -947,20 +947,37 @@ export class PopupManager {
     message: string,
     placeholder?: string,
     defaultValue?: string,
-    projectRoot?: string
+    projectRoot?: string,
+    maxVisibleLines?: number
   ): Promise<string | null> {
     if (!this.checkPopupSupport()) return null
 
     try {
+      const messageLines = message ? message.split("\n").length : 1
+      const scrollable = typeof maxVisibleLines === "number" && maxVisibleLines > 0
+
+      // Overhead: borders(2) + container padding(2) + input border(2) + input padding(0) +
+      // section spacing(1) + input bottom margin(1) + help line(1) + safety(1) = ~10
+      const overhead = 10
+      const inputLines = scrollable ? maxVisibleLines! : 1
+      const desiredHeight = messageLines + inputLines + overhead
+      const maxHeight = Math.max(10, this.config.terminalHeight - 2)
+      const height = Math.min(maxHeight, Math.max(15, desiredHeight))
+
+      const desiredWidth = scrollable
+        ? Math.min(this.config.terminalWidth - this.config.sidebarWidth - 4, 100)
+        : 70
+      const width = Math.max(50, desiredWidth)
+
       const result = await this.launchPopup<string>(
         "inputPopup.js",
         [],
         {
-          width: 70,
-          height: 15,
+          width,
+          height,
           title: title || "Input",
         },
-        { title, message, placeholder, defaultValue },
+        { title, message, placeholder, defaultValue, maxVisibleLines },
         projectRoot
       )
 

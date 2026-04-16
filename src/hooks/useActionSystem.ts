@@ -48,7 +48,8 @@ interface UseActionSystemParams {
       message: string,
       placeholder?: string,
       defaultValue?: string,
-      projectRoot?: string
+      projectRoot?: string,
+      maxVisibleLines?: number
     ) => Promise<string | null>;
     launchProgressPopup?: (
       message: string,
@@ -119,7 +120,8 @@ async function handleResultWithPopups(
       result.message,
       result.placeholder,
       result.defaultValue,
-      projectRoot
+      projectRoot,
+      result.inputMaxVisibleLines
     );
 
     if (inputValue !== null && result.onSubmit) {

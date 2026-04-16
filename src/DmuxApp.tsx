@@ -1009,7 +1009,8 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
         result.message,
         result.placeholder,
         result.defaultValue,
-        selectedProjectRoot
+        selectedProjectRoot,
+        result.inputMaxVisibleLines
       )
       if (inputValue !== null) {
         const nextResult = await trackProjectActivity(

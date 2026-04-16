@@ -236,9 +236,12 @@ export async function createPullRequest(
     const header = aiFailed
       ? '⚠️ AI summary generation failed. Write a title (first line), blank line, then markdown body.'
       : 'Review the AI-generated PR summary. First line is the title; blank line; then body.';
-    const filesNote = diffSummary.trim()
-      ? `\n\nFiles changed:\n${diffSummary.trim()}`
-      : '';
+    const trimmedDiffSummary = diffSummary.trim();
+    const diffSummaryLines = trimmedDiffSummary ? trimmedDiffSummary.split('\n') : [];
+    const filesPreview = diffSummaryLines.length > 4
+      ? [...diffSummaryLines.slice(0, 3), `…and ${diffSummaryLines.length - 3} more`].join('\n')
+      : trimmedDiffSummary;
+    const filesNote = filesPreview ? `\n\nFiles changed:\n${filesPreview}` : '';
 
     return {
       type: 'input',
@@ -246,6 +249,7 @@ export async function createPullRequest(
       message: `${header}${filesNote}`,
       placeholder: 'feat: short title\n\n## Summary\n- ...',
       defaultValue,
+      inputMaxVisibleLines: 14,
       onSubmit: async (value: string) => {
         const { title, body } = parsePRSummary(value);
         if (!title) {
