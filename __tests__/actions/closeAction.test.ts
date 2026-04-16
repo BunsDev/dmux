@@ -43,6 +43,7 @@ vi.mock('../../src/shared/StateManager.js', () => ({
 
 vi.mock('../../src/utils/hooks.js', () => ({
   triggerHook: vi.fn().mockResolvedValue(undefined),
+  triggerHookSync: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('../../src/services/LogService.js', () => ({
@@ -65,7 +66,7 @@ vi.mock('fs', () => {
 
 import { execSync } from 'child_process';
 import { StateManager } from '../../src/shared/StateManager.js';
-import { triggerHook } from '../../src/utils/hooks.js';
+import { triggerHook, triggerHookSync } from '../../src/utils/hooks.js';
 import fs from 'fs';
 
 describe('closeAction', () => {
@@ -334,7 +335,7 @@ describe('closeAction', () => {
       const result = await closePane(mockPane, mockContext);
       await result.onSelect!('kill_and_clean');
 
-      expect(triggerHook).toHaveBeenCalledWith('before_worktree_remove', expect.anything(), mockPane);
+      expect(triggerHookSync).toHaveBeenCalledWith('before_worktree_remove', expect.anything(), mockPane);
     });
 
     it('should NOT delete branch when kill_and_clean selected', async () => {
