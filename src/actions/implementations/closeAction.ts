@@ -9,7 +9,7 @@ import type { DmuxPane, DmuxConfig } from '../../types.js';
 import type { ActionResult, ActionContext, ActionOption } from '../types.js';
 import { StateManager } from '../../shared/StateManager.js';
 import { PaneLifecycleManager } from '../../services/PaneLifecycleManager.js';
-import { triggerHook } from '../../utils/hooks.js';
+import { triggerHook, triggerHookSync } from '../../utils/hooks.js';
 import { LogService } from '../../services/LogService.js';
 import { WorktreeCleanupService } from '../../services/WorktreeCleanupService.js';
 import { deriveProjectRootFromWorktreePath, getPaneProjectRoot } from '../../utils/paneProject.js';
@@ -278,8 +278,10 @@ async function executeCloseOption(
         } else {
           const mainRepoPath = deriveProjectRootFromWorktreePath(pane.worktreePath) || paneProjectRoot;
 
-          // Trigger before_worktree_remove hook
-          await triggerHook('before_worktree_remove', paneProjectRoot, pane);
+          // Trigger before_worktree_remove hook synchronously — the hook may need
+          // to read the worktree (e.g. run bundled teardown scripts), and the
+          // worktree directory is about to be deleted.
+          await triggerHookSync('before_worktree_remove', paneProjectRoot, pane);
 
           try {
             WorktreeCleanupService.getInstance().enqueueCleanup({
