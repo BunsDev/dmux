@@ -51,7 +51,7 @@ interface ViewState {
   completeMessage?: string;
 }
 
-const spinnerFrames = ['-', '\\', '|', '/'];
+const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 let inkInstance: ReturnType<typeof renderInk> | null = null;
 let viewState: ViewState = {
   steps: [],
@@ -85,7 +85,7 @@ function useBootstrapSpinner(active: boolean): string {
     if (!active) return undefined;
     const timer = setInterval(() => {
       setFrame((current) => (current + 1) % spinnerFrames.length);
-    }, 90);
+    }, 80);
     return () => clearInterval(timer);
   }, [active]);
 
@@ -95,18 +95,18 @@ function useBootstrapSpinner(active: boolean): string {
 function StepMarker(props: { step: Step; spinner: string }): React.ReactElement {
   const { step, spinner } = props;
   if (step.state === 'done') {
-    return React.createElement(Text, { color: 'green' }, '[ok]');
+    return React.createElement(Text, { color: 'green' }, '✔');
   }
   if (step.state === 'failed') {
-    return React.createElement(Text, { color: 'red' }, '[!!]');
+    return React.createElement(Text, { color: 'red' }, '✖');
   }
   if (step.state === 'skipped') {
-    return React.createElement(Text, { dimColor: true }, '[--]');
+    return React.createElement(Text, { dimColor: true }, '◌');
   }
   if (step.state === 'active') {
-    return React.createElement(Text, { color: 'cyan' }, `[${spinner}]`);
+    return React.createElement(Text, { color: 'cyan' }, spinner);
   }
-  return React.createElement(Text, { dimColor: true }, '[  ]');
+  return React.createElement(Text, { dimColor: true }, '○');
 }
 
 function BootstrapApp(props: { config: PaneBootstrapConfig }): React.ReactElement {
@@ -135,6 +135,21 @@ function BootstrapApp(props: { config: PaneBootstrapConfig }): React.ReactElemen
 
   const borderColor = state.failedMessage ? 'red' : state.completeMessage ? 'green' : 'cyan';
   const activeStep = state.steps.find((step) => step.state === 'active');
+  const totalSteps = state.steps.length;
+  const completedSteps = state.steps.filter(
+    (step) => step.state === 'done' || step.state === 'skipped'
+  ).length;
+  const progressWidth = 12;
+  const filledBars = totalSteps === 0
+    ? 0
+    : Math.round((completedSteps / totalSteps) * progressWidth);
+  const progressBar =
+    '▰'.repeat(filledBars) + '▱'.repeat(progressWidth - filledBars);
+  const headline = state.failedMessage
+    ? 'setup needs attention'
+    : state.completeMessage
+      ? 'ready to launch'
+      : 'preparing your agent';
 
   return React.createElement(
     Box,
@@ -145,7 +160,7 @@ function BootstrapApp(props: { config: PaneBootstrapConfig }): React.ReactElemen
         borderStyle: 'round',
         borderColor,
         flexDirection: 'column',
-        paddingX: 1,
+        paddingX: 2,
         paddingY: 1,
       },
       React.createElement(
@@ -153,21 +168,38 @@ function BootstrapApp(props: { config: PaneBootstrapConfig }): React.ReactElemen
         { flexDirection: 'column', marginBottom: 1 },
         React.createElement(
           Text,
-          { bold: true, color: borderColor },
-          state.failedMessage ? 'dmux setup needs attention' : 'dmux is preparing your agent'
+          null,
+          React.createElement(Text, { bold: true, color: borderColor }, 'dmux'),
+          React.createElement(Text, { dimColor: true }, '  ·  '),
+          React.createElement(Text, null, headline)
         ),
         React.createElement(
           Text,
           { dimColor: true },
-          'The agent starts only after the worktree and hooks are ready.'
+          'Worktree and hooks go first, then your agent takes over.'
         )
       ),
       React.createElement(
         Box,
         { flexDirection: 'column', marginBottom: 1 },
-        React.createElement(Text, null, React.createElement(Text, { dimColor: true }, 'Pane   '), config.slug),
-        React.createElement(Text, null, React.createElement(Text, { dimColor: true }, 'Branch '), config.branchName),
-        React.createElement(Text, null, React.createElement(Text, { dimColor: true }, 'Agent  '), agentLabel)
+        React.createElement(
+          Text,
+          null,
+          React.createElement(Text, { dimColor: true }, 'pane    '),
+          React.createElement(Text, { bold: true }, config.slug)
+        ),
+        React.createElement(
+          Text,
+          null,
+          React.createElement(Text, { dimColor: true }, 'branch  '),
+          React.createElement(Text, { bold: true }, config.branchName)
+        ),
+        React.createElement(
+          Text,
+          null,
+          React.createElement(Text, { dimColor: true }, 'agent   '),
+          React.createElement(Text, { bold: true }, agentLabel)
+        )
       ),
       React.createElement(
         Box,
@@ -177,24 +209,54 @@ function BootstrapApp(props: { config: PaneBootstrapConfig }): React.ReactElemen
             Box,
             { key: step.id },
             React.createElement(StepMarker, { step, spinner }),
-            React.createElement(Text, null, ' '),
-            React.createElement(Text, { color: step.state === 'active' ? 'cyan' : undefined }, step.label),
+            React.createElement(Text, null, '  '),
+            React.createElement(
+              Text,
+              {
+                color:
+                  step.state === 'active'
+                    ? 'cyan'
+                    : step.state === 'failed'
+                      ? 'red'
+                      : undefined,
+                dimColor:
+                  step.state === 'pending' || step.state === 'skipped'
+                    ? true
+                    : undefined,
+              },
+              step.label
+            ),
             step.detail
-              ? React.createElement(Text, { dimColor: true }, ` - ${step.detail}`)
+              ? React.createElement(Text, { dimColor: true }, `  ${step.detail}`)
               : null
           )
         )
       ),
       React.createElement(
         Box,
+        { marginTop: 1 },
+        React.createElement(Text, { color: borderColor }, progressBar),
+        React.createElement(
+          Text,
+          { dimColor: true },
+          `  ${completedSteps} / ${totalSteps}`
+        )
+      ),
+      React.createElement(
+        Box,
         { marginTop: 1, flexDirection: 'column' },
         state.failedMessage
-          ? React.createElement(Text, { color: 'red' }, state.failedMessage)
+          ? React.createElement(Text, { color: 'red' }, `✖  ${state.failedMessage}`)
           : React.createElement(
               Text,
               { dimColor: true },
               state.currentDetail
-                || (activeStep ? `Running: ${activeStep.label}` : 'Waiting for the next setup step.')
+                ? `→  ${state.currentDetail}`
+                : activeStep
+                  ? `→  ${activeStep.label}`
+                  : state.completeMessage
+                    ? '✓  ready to launch'
+                    : 'waiting for the next setup step…'
             )
       )
     )
