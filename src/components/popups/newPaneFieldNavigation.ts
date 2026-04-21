@@ -1,6 +1,6 @@
 /**
  * Implements the cyclic behavior for the 'new pane' tab of creating a new agent.
- * 
+ *
  * Specifically, the 'prompt' -> 'base branch' -> 'new branch name' cycle.
  */
 

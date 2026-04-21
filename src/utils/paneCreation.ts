@@ -33,7 +33,7 @@ import {
   writePromptFile,
 } from './promptStore.js';
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
-import { isValidBranchName } from './git.js';
+import { isValidBranchName, isValidFullBranchName } from './git.js';
 import { sendPromptViaTmux } from './agentPromptDispatch.js';
 import { resolvePaneNaming } from './paneNaming.js';
 import { readWorktreeMetadata, writeWorktreeMetadata } from './worktreeMetadata.js';
@@ -182,12 +182,12 @@ export async function createPane(
   }
 
   const overrideBranchName = (branchNameOverride || '').trim();
-  if (overrideBranchName && !isValidBranchName(overrideBranchName)) {
+  if (overrideBranchName && !isValidFullBranchName(overrideBranchName)) {
     throw new Error(`Invalid branch name override: ${overrideBranchName}`);
   }
 
   const overrideBaseBranch = (baseBranchOverride || '').trim();
-  if (overrideBaseBranch && !isValidBranchName(overrideBaseBranch)) {
+  if (overrideBaseBranch && !isValidFullBranchName(overrideBaseBranch)) {
     throw new Error(`Invalid base branch override: ${overrideBaseBranch}`);
   }
 

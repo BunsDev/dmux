@@ -41,7 +41,9 @@ describe('PopupManager launchNewPanePopup', () => {
       ['/tmp/other-project', '1'],
       expect.objectContaining({
         title: '  ✨ New Pane — other-project  ',
-      })
+      }),
+      undefined,
+      '/tmp/other-project'
     );
     expect(result).toEqual({
       prompt: 'test prompt',
@@ -63,7 +65,9 @@ describe('PopupManager launchNewPanePopup', () => {
     expect(manager.launchPopup).toHaveBeenCalledWith(
       'newPanePopup.js',
       ['/tmp/project', '0'],
-      expect.any(Object)
+      expect.any(Object),
+      undefined,
+      '/tmp/project'
     );
   });
 

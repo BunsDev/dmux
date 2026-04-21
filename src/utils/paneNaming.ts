@@ -37,7 +37,8 @@ export function sanitizeWorktreeSlugFromBranch(branchName: string): string {
     .replace(/[\\/]+/g, '-')
     .replace(/[^a-z0-9._-]+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .replace(/^\.+|\.+$/g, '');
 
   return normalized || 'pane';
 }

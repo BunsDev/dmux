@@ -84,4 +84,9 @@ describe('sanitizeWorktreeSlugFromBranch', () => {
   it('falls back to pane when branch contains no usable chars', () => {
     expect(sanitizeWorktreeSlugFromBranch('////')).toBe('pane');
   });
+
+  it('does not produce dot-directory slugs', () => {
+    expect(sanitizeWorktreeSlugFromBranch('.')).toBe('pane');
+    expect(sanitizeWorktreeSlugFromBranch('.hidden')).toBe('hidden');
+  });
 });
