@@ -25,7 +25,7 @@ import {
   buildPromptReadAndDeleteSnippet,
   writePromptFile,
 } from './promptStore.js';
-import { triggerHookSync, initializeHooksDirectory } from './hooks.js';
+import { triggerHookWithProgress, initializeHooksDirectory } from './hooks.js';
 import { writeWorktreeMetadata } from './worktreeMetadata.js';
 import { ensureGeminiFolderTrusted } from './geminiTrust.js';
 import {
@@ -47,11 +47,13 @@ interface Step {
 interface ViewState {
   steps: Step[];
   currentDetail: string;
+  recentMessages?: string[];
   failedMessage?: string;
   completeMessage?: string;
 }
 
 const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+const BOOTSTRAP_HOOK_TIMEOUT_MS = 0;
 let inkInstance: ReturnType<typeof renderInk> | null = null;
 let viewState: ViewState = {
   steps: [],
@@ -76,6 +78,42 @@ function updateViewState(patch: Partial<ViewState>): void {
   for (const listener of viewListeners) {
     listener(viewState);
   }
+}
+
+function normalizeProgressLine(line: string): string {
+  return line
+    .replace(/^\s*(DMUX_STATUS:|dmux:|status:)\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 180);
+}
+
+function appendProgressLine(line: string, stream: 'stdout' | 'stderr' = 'stdout'): void {
+  const normalized = normalizeProgressLine(line);
+  if (!normalized) return;
+
+  const prefix = stream === 'stderr' ? '! ' : '';
+  const nextLine = `${prefix}${normalized}`;
+  updateViewState({
+    currentDetail: normalized,
+    recentMessages: [...(viewState.recentMessages || []), nextLine].slice(-5),
+  });
+}
+
+function appendProgressChunk(
+  chunk: string,
+  stream: 'stdout' | 'stderr',
+  remainder: string
+): string {
+  const content = remainder + chunk;
+  const lines = content.split(/\r?\n/);
+  const nextRemainder = lines.pop() || '';
+
+  for (const line of lines) {
+    appendProgressLine(line, stream);
+  }
+
+  return nextRemainder;
 }
 
 function useBootstrapSpinner(active: boolean): string {
@@ -258,8 +296,26 @@ function BootstrapApp(props: { config: PaneBootstrapConfig }): React.ReactElemen
                     ? '✓  ready to launch'
                     : 'waiting for the next setup step…'
             )
+      ),
+      state.recentMessages && state.recentMessages.length > 0
+        ? React.createElement(
+            Box,
+            { flexDirection: 'column', marginTop: 1 },
+            React.createElement(Text, { dimColor: true }, 'recent output'),
+            ...state.recentMessages.map((message, index) =>
+              React.createElement(
+                Text,
+                {
+                  key: `${index}-${message}`,
+                  color: message.startsWith('! ') ? 'yellow' : undefined,
+                  dimColor: !message.startsWith('! '),
+                },
+                `  ${message}`
+              )
+            )
+          )
+        : null
       )
-    )
   );
 }
 
@@ -347,17 +403,25 @@ async function runCommand(
 
     let stdout = '';
     let stderr = '';
+    let stdoutRemainder = '';
+    let stderrRemainder = '';
 
     child.stdout?.on('data', (data: Buffer) => {
-      stdout += data.toString();
+      const chunk = data.toString();
+      stdout += chunk;
+      stdoutRemainder = appendProgressChunk(chunk, 'stdout', stdoutRemainder);
     });
     child.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString();
+      const chunk = data.toString();
+      stderr += chunk;
+      stderrRemainder = appendProgressChunk(chunk, 'stderr', stderrRemainder);
     });
     child.on('error', (error) => {
       reject(error);
     });
     child.on('close', (code) => {
+      appendProgressLine(stdoutRemainder, 'stdout');
+      appendProgressLine(stderrRemainder, 'stderr');
       updateViewState({ currentDetail: '' });
       if (code === 0 || opts.allowFailure) {
         resolve({ stdout, stderr, code });
@@ -622,11 +686,17 @@ async function main(): Promise<number> {
     }
 
     setStep(config, steps, 'worktree-hook', 'active');
-    const hookResult = await triggerHookSync(
+    const hookResult = await triggerHookWithProgress(
       'worktree_created',
       config.projectRoot,
       config.pane,
-      config.hookExtraEnv
+      {
+        ...config.hookExtraEnv,
+        DMUX_PROGRESS: '1',
+        DMUX_STATUS_PREFIX: 'DMUX_STATUS:',
+      },
+      (event) => appendProgressLine(event.line, event.stream),
+      BOOTSTRAP_HOOK_TIMEOUT_MS
     );
     if (!hookResult.success) {
       throw new Error(hookResult.error || 'worktree_created hook failed');
