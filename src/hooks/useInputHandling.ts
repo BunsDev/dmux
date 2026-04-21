@@ -134,6 +134,7 @@ interface UseInputHandlingParams {
 
   // Project info
   projectRoot: string
+  activeProjectRoot: string
   projectActionItems: ProjectActionItem[]
 
   // Navigation
@@ -189,6 +190,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
     getAvailableAgentsForProject,
     panesFile,
     projectRoot,
+    activeProjectRoot,
     projectActionItems,
     findCardInDirection,
   } = params
@@ -535,13 +537,7 @@ export function useInputHandling(params: UseInputHandlingParams) {
   }
 
   const getActiveProjectRoot = (): string => {
-    const selectedPane = selectedIndex < panes.length ? panes[selectedIndex] : undefined
-    if (selectedPane) {
-      return getPaneProjectRoot(selectedPane, projectRoot)
-    }
-
-    const selectedAction = getProjectActionByIndex(projectActionItems, selectedIndex)
-    return selectedAction?.projectRoot || projectRoot
+    return activeProjectRoot || projectRoot
   }
 
   const launchHooksAuthoringSession = async (targetProjectRoot?: string) => {

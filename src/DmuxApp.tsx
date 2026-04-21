@@ -1540,6 +1540,7 @@ const DmuxApp: React.FC<DmuxAppProps> = ({
     getAvailableAgentsForProject,
     panesFile,
     projectRoot: sessionProjectRoot,
+    activeProjectRoot: selectedProjectRoot,
     projectActionItems: projectActionLayout.actionItems,
     findCardInDirection,
   })
